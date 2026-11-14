@@ -1,0 +1,19 @@
+# Build output
+build/
+*.o
+*.dSYM/
+.DS_Store
+
+# Runtime data. These files are created automatically on first run and must
+# never be committed: they contain real user records and password hashes.
+data/*.txt
+data/*.txt.tmp
+
+# Keep the folder itself and the seed file
+!data/.gitkeep
+!data/sample/sample_data.txt
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp

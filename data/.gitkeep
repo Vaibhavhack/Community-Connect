@@ -1,0 +1,7 @@
+This folder holds the application's local .txt data files.
+
+users.txt, resources.txt, requests.txt and notifications.txt are created
+AUTOMATICALLY the first time the backend runs. They are listed in .gitignore
+because they contain real records and password hashes.
+
+Nothing needs to be added here by hand.

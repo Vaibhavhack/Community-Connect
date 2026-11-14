@@ -1,0 +1,5 @@
+#CC1
+1|2026-11-14T07:05:56Z|1|vaibhav manwal requested your resource "java notes" (request #1).|resource_request|0|2026-11-14T07:05:56Z
+2|2026-11-14T07:06:42Z|1|vaibhav manwal cancelled their request "Help with java notes" (#1).|request_cancelled|0|2026-11-14T07:06:42Z
+3|2026-11-14T07:14:17Z|2|vaibhav manwal requested your resource "dsa notes" (request #2).|resource_request|0|2026-11-14T07:14:17Z
+4|2026-11-14T07:14:32Z|1|vaibhav manwal accepted your request "Help with dsa notes" (#2). Their contact details are now visible on the request page.|request_accepted|0|2026-11-14T07:14:32Z
