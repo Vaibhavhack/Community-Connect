@@ -1,13 +1,3 @@
-// RequestService.cpp
-// -----------------------------------------------------------------------------
-// MODULE 3 - Help Request Management.
-//
-// The interesting parts are marked with ===== so they are easy to find during
-// the viva:
-//   ===== 1. priority queue maintenance =====
-//   ===== 2. the status state machine  =====
-//   ===== 3. the contact privacy gate  =====
-// -----------------------------------------------------------------------------
 
 #include "RequestService.h"
 
@@ -29,12 +19,7 @@ bool hasControlCharacters(const std::string& value) {
     return false;
 }
 
-} // namespace
-
-// ---------------------------------------------------------------------------
-// Construction
-// ---------------------------------------------------------------------------
-
+} 
 RequestService::RequestService(FileManager& files,
                                ResourceService& resources,
                                UserService& users,
@@ -55,9 +40,7 @@ RequestService::RequestService(FileManager& files,
     }
     nextRequestId_ = highestId + 1;
 
-    // The queue is rebuilt lazily on first use. That is the "reconstruct the
-    // priority queue from saved requests when the application starts"
-    // requirement: the data comes from requests.txt, nothing is hard-coded.
+    
     queueDirty_ = true;
 }
 
@@ -65,13 +48,7 @@ void RequestService::persist() {
     files_.saveAll(kFileName, requests_);
 }
 
-// ---------------------------------------------------------------------------
-// ===== 1. PRIORITY QUEUE MAINTENANCE =====
-// ---------------------------------------------------------------------------
 
-// High > Medium > Low. On a tie the smaller id wins, and because ids are
-// handed out in creation order, the smaller id IS the older request. This is
-// the "equal priority -> older first" rule from the brief.
 bool RequestService::higherPriorityFirst(const HelpRequest& a, const HelpRequest& b) {
     if (a.priority != b.priority) {
         return static_cast<int>(a.priority) > static_cast<int>(b.priority);
@@ -86,9 +63,7 @@ void RequestService::markQueueDirty() const {
 void RequestService::ensureQueueFresh() const {
     if (!queueDirty_) return;
 
-    // Only Pending requests belong in the queue. Accept/reject/cancel/complete
-    // therefore need no surgical removal: they mark the queue dirty and the
-    // next read rebuilds it from the current truth in requests_.
+   
     std::vector<HelpRequest> pending;
     pending.reserve(requests_.size());
 
@@ -98,7 +73,7 @@ void RequestService::ensureQueueFresh() const {
         }
     }
 
-    // buildHeap is O(n) bottom-up heapify, not n separate O(log n) inserts.
+    
     pendingQueue_.buildHeap(pending);
     queueDirty_ = false;
 }
@@ -106,7 +81,7 @@ void RequestService::ensureQueueFresh() const {
 std::vector<HelpRequest> RequestService::listPendingByPriority() const {
     ensureQueueFresh();
 
-    // sortedCopy() heap-sorts a COPY, so displaying the queue never destroys it.
+    
     return pendingQueue_.sortedCopy();
 }
 
@@ -126,8 +101,8 @@ bool RequestService::takeHighestPriority(HelpRequest& out) {
         return false;
     }
 
-    out = pendingQueue_.pop();   // O(log n)
-    markQueueDirty();            // the heap no longer matches requests_
+    out = pendingQueue_.pop();   
+    markQueueDirty();            
     return true;
 }
 
@@ -136,9 +111,6 @@ std::size_t RequestService::pendingCount() const {
     return pendingQueue_.size();
 }
 
-// ---------------------------------------------------------------------------
-// Lookups
-// ---------------------------------------------------------------------------
 
 bool RequestService::exists(int requestId) const {
     return requestId > 0 && idIndex_.find(requestId) != idIndex_.end();
@@ -208,9 +180,6 @@ bool RequestService::hasLiveRequests(int resourceId) const {
     return false;
 }
 
-// ---------------------------------------------------------------------------
-// Create
-// ---------------------------------------------------------------------------
 
 int RequestService::createRequest(int requesterId,
                                   int resourceId,
@@ -225,7 +194,7 @@ int RequestService::createRequest(int requesterId,
 
     HelpRequest request;
 
-    // Validate first, assign to the record second (never a half-built record).
+    
     request.title          = validateTitle(title);
     request.description    = validateDescription(description);
     request.requiredSkills = joinList(splitList(requiredSkills));
@@ -236,13 +205,12 @@ int RequestService::createRequest(int requesterId,
     std::string resourceTitle;
 
     if (resourceId > 0) {
-        // ---- attached to a specific resource -------------------------------
+        
         if (!resources_.exists(resourceId)) {
             throw NotFoundError("Resource not found.");
         }
 
-        // Preserved rule from your submitRequest(): you cannot request your
-        // own resource.
+        
         if (resources_.ownerOf(resourceId) == requesterId) {
             throw ForbiddenError("You cannot request your own resource.");
         }
@@ -254,8 +222,7 @@ int RequestService::createRequest(int requesterId,
         request.resourceId = resourceId;
         resourceTitle = resources_.titleOf(resourceId);
 
-        // Inherit the resource category so search stays consistent, unless the
-        // requester explicitly chose one.
+        
         request.category = trim(category).empty()
                                ? resources_.categoryOf(resourceId)
                                : categories::validate(category);
@@ -263,7 +230,7 @@ int RequestService::createRequest(int requesterId,
         ownerToNotify = resources_.ownerOf(resourceId);
 
     } else {
-        // ---- general help request (resourceId = 0) -------------------------
+       
         request.resourceId = 0;
 
         if (trim(category).empty()) {
@@ -278,21 +245,18 @@ int RequestService::createRequest(int requesterId,
     request.setCreatedAt(nowIso8601());
     request.updatedAt = request.getCreatedAt();
 
-    // Make sure the heap represents all PREVIOUS pending requests before the
-    // new record is inserted. If we rebuilt after push(), this new request
-    // would be copied from requests_ and then pushed a second time.
+    
     ensureQueueFresh();
 
     requests_.push_back(request);
     idIndex_[request.getId()] = requests_.size() - 1;
 
-    // The heap is already fresh, so adding this one request is a genuine
-    // binary-heap insertion: O(log n).
+    
     pendingQueue_.push(request);
 
     persist();
 
-    // The resource owner should know immediately (Module 5).
+    
     if (ownerToNotify > 0) {
         const std::string requesterName = users_.getPublicProfile(requesterId).name;
         notifications_.notifyResourceRequested(ownerToNotify, requesterId, requesterName,
@@ -301,15 +265,6 @@ int RequestService::createRequest(int requesterId,
 
     return request.getId();
 }
-
-// ---------------------------------------------------------------------------
-// ===== 2. THE STATUS STATE MACHINE =====
-// ---------------------------------------------------------------------------
-
-// Who may accept or reject this request?
-//   - resource-bound request : only the owner of that resource
-//   - general request        : any other registered user (whoever can help
-//                              offers to help; the requester cannot self-accept)
 bool RequestService::mayAccept(const HelpRequest& request, int actingUserId) const {
     if (actingUserId <= 0) return false;
     if (actingUserId == request.requesterId) return false;
@@ -381,13 +336,12 @@ void RequestService::authorizeTransition(const HelpRequest& request,
         }
 
         case RequestStatus::Pending:
-            // Nothing transitions *to* Pending. This is the guard that stops the
-            // original bug where Completed could be dragged back to Pending.
+            
             throw ConflictError("A request cannot be moved back to Pending (" + label + ").");
     }
 }
 
-// Store the updated record, keep the queue honest, save, return the result.
+
 HelpRequest RequestService::commit(const HelpRequest& request, bool affectsPendingSet) {
     auto it = idIndex_.find(request.getId());
     if (it == idIndex_.end()) {
@@ -396,8 +350,7 @@ HelpRequest RequestService::commit(const HelpRequest& request, bool affectsPendi
 
     requests_[it->second] = request;
 
-    // Any status or priority change can reorder the queue, so the cheap and
-    // always-correct move is to rebuild it on next read.
+    
     if (affectsPendingSet) {
         markQueueDirty();
     }
@@ -519,7 +472,7 @@ HelpRequest RequestService::updateRequest(int requestId,
 
     const HelpRequest saved = commit(request, true);
 
-    // A priority change reorders the queue, so the requester is told (Module 5).
+    
     if (priority != oldPriority) {
         notifications_.notifyPriorityChanged(request.requesterId, request.title,
                                               static_cast<int>(oldPriority),
@@ -530,20 +483,7 @@ HelpRequest RequestService::updateRequest(int requestId,
     return saved;
 }
 
-// ---------------------------------------------------------------------------
-// ===== 3. THE CONTACT PRIVACY GATE =====
-// ---------------------------------------------------------------------------
-//
-// This is the only method in the whole backend that returns an email address or
-// phone number belonging to somebody else, and it refuses unless:
-//
-//   status is Accepted or Completed      (a rejection keeps contact hidden)
-//   AND the caller is a party to the request
-//
-// Because the caller is identified by the SESSION token - not by an id in the
-// request body - editing the HTTP request by hand cannot bypass this. Hiding the
-// field with CSS would have been cosmetic; this is the actual enforcement the
-// brief asks for.
+
 ContactDetails RequestService::contactDetailsFor(int requestId, int actingUserId) {
     if (actingUserId <= 0) {
         throw AuthError("Please log in to view contact details.");
@@ -558,17 +498,17 @@ ContactDetails RequestService::contactDetailsFor(int requestId, int actingUserId
             toString(request.status) + ".");
     }
 
-    // Who is the other party?
+    
     int counterpart = 0;
 
     if (actingUserId == request.requesterId) {
-        // The requester sees whoever accepted.
+      
         counterpart = request.acceptOwnerId;
         if (counterpart == 0 && request.resourceId > 0 && resources_.exists(request.resourceId)) {
             counterpart = resources_.ownerOf(request.resourceId);
         }
     } else {
-        // The accepting party (and the resource owner) sees the requester.
+        
         const bool isAccepter = request.acceptOwnerId == actingUserId;
         bool isResourceOwner = false;
         if (request.resourceId > 0 && resources_.exists(request.resourceId)) {
@@ -588,8 +528,7 @@ ContactDetails RequestService::contactDetailsFor(int requestId, int actingUserId
         throw NotFoundError("The other participant's account is no longer available.");
     }
 
-    // getOwnProfile() is the view that INCLUDES email and phone; it is safe here
-    // because the privacy decision was made above.
+   
     const UserView profile = users_.getOwnProfile(counterpart);
 
     ContactDetails details;
@@ -603,9 +542,6 @@ ContactDetails RequestService::contactDetailsFor(int requestId, int actingUserId
     return details;
 }
 
-// ---------------------------------------------------------------------------
-// Counters used by the dashboard
-// ---------------------------------------------------------------------------
 
 std::size_t RequestService::countPendingForUser(int userId) const {
     std::size_t total = 0;
@@ -633,9 +569,6 @@ std::size_t RequestService::countCompletedForUser(int userId) const {
     return total;
 }
 
-// ---------------------------------------------------------------------------
-// Validation
-// ---------------------------------------------------------------------------
 
 std::string RequestService::validateTitle(const std::string& value) {
     const std::string title = trim(value);
@@ -678,4 +611,4 @@ std::string RequestService::validateDescription(const std::string& value) {
     return description;
 }
 
-} // namespace cc
+} 
