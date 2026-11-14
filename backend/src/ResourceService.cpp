@@ -1,7 +1,4 @@
-// ResourceService.cpp
-// -----------------------------------------------------------------------------
-// MODULE 2 - Resource Management.
-// -----------------------------------------------------------------------------
+
 
 #include "ResourceService.h"
 
@@ -22,11 +19,7 @@ bool hasControlCharacters(const std::string& value) {
     return false;
 }
 
-} // namespace
-
-// ---------------------------------------------------------------------------
-// Construction
-// ---------------------------------------------------------------------------
+} 
 
 ResourceService::ResourceService(FileManager& files) : files_(files) {
     resources_ = files_.loadAll<Resource>(kFileName);
@@ -44,9 +37,6 @@ void ResourceService::persist() {
     files_.saveAll(kFileName, resources_);
 }
 
-// ---------------------------------------------------------------------------
-// Validation
-// ---------------------------------------------------------------------------
 
 std::string ResourceService::validateTitle(const std::string& value) {
     const std::string title = trim(value);
@@ -69,7 +59,7 @@ std::string ResourceService::validateTitle(const std::string& value) {
 }
 
 std::string ResourceService::validateDescription(const std::string& value) {
-    // Multi-line descriptions are allowed on purpose (notes, syllabus lists).
+    
     const std::string description = trim(value);
 
     if (description.empty()) {
@@ -90,9 +80,7 @@ std::string ResourceService::validateDescription(const std::string& value) {
     return description;
 }
 
-// ---------------------------------------------------------------------------
-// Lookups
-// ---------------------------------------------------------------------------
+
 
 bool ResourceService::exists(int resourceId) const {
     return resourceId > 0 && idIndex_.find(resourceId) != idIndex_.end();
@@ -132,9 +120,6 @@ std::string ResourceService::categoryOf(int resourceId) const {
     return requireResource(resourceId).category;
 }
 
-// ---------------------------------------------------------------------------
-// Create / list
-// ---------------------------------------------------------------------------
 
 int ResourceService::createResource(int ownerId,
                                     const std::string& title,
@@ -146,11 +131,10 @@ int ResourceService::createResource(int ownerId,
 
     Resource resource;
 
-    // Validate everything BEFORE assigning, so a rejected field cannot leave a
-    // half-built record behind.
+    
     resource.title        = validateTitle(title);
     resource.description  = validateDescription(description);
-    resource.category     = categories::validate(category); // one of the nine
+    resource.category     = categories::validate(category); 
     resource.ownerId      = ownerId;
     resource.availability = Availability::Available;
 
@@ -168,8 +152,7 @@ int ResourceService::createResource(int ownerId,
 std::vector<Resource> ResourceService::listAll() const {
     std::vector<Resource> result = resources_;
 
-    // Newest first: ids increase with creation, so this is a stable, cheap
-    // ordering that needs no date parsing.
+   
     std::sort(result.begin(), result.end(),
               [](const Resource& a, const Resource& b) {
                   return a.getId() > b.getId();
@@ -180,8 +163,7 @@ std::vector<Resource> ResourceService::listAll() const {
 
 std::vector<Resource> ResourceService::listFiltered(const std::string& category,
                                                     bool onlyAvailable) const {
-    // "All" / empty means no category filter. The category is matched
-    // case-insensitively so the query string does not have to be exact.
+  
     const std::string wanted = toLowerCopy(trim(category));
     const bool filterCategory = !wanted.empty() && wanted != "all";
 
@@ -224,9 +206,6 @@ std::size_t ResourceService::countByOwner(int ownerId) const {
     return total;
 }
 
-// ---------------------------------------------------------------------------
-// Edit / delete / availability
-// ---------------------------------------------------------------------------
 
 Resource ResourceService::updateResource(int resourceId,
                                          int userId,
@@ -235,11 +214,10 @@ Resource ResourceService::updateResource(int resourceId,
                                          const std::string& category) {
     Resource& resource = requireResourceMutable(resourceId);
 
-    // The ownership rule from the original code, applied to editing.
+   
     requireOwner(resource, userId);
 
-    // Validate everything first, then commit - same two-phase rule as
-    // UserService::updateProfile().
+    
     std::string newTitle       = resource.title;
     std::string newDescription = resource.description;
     std::string newCategory    = resource.category;
@@ -267,8 +245,7 @@ void ResourceService::deleteResource(int resourceId,
     const std::size_t position = it->second;
     requireOwner(resources_[position], userId);
 
-    // Referential integrity: refuse the delete while requests still point here.
-    // The caller gets an actionable message instead of silently broken data.
+    
     if (hasLiveRequests && hasLiveRequests(resourceId)) {
         throw ConflictError(
             "This resource still has open help requests. Mark it unavailable, or "
@@ -278,8 +255,7 @@ void ResourceService::deleteResource(int resourceId,
     resources_.erase(resources_.begin() + static_cast<std::ptrdiff_t>(position));
     idIndex_.erase(it);
 
-    // Erasing shifts every position after it, so the index must be rebuilt.
-    // This is O(n) but only happens on a delete, never on a read.
+   
     for (std::size_t index = position; index < resources_.size(); ++index) {
         idIndex_[resources_[index].getId()] = index;
     }
@@ -298,4 +274,4 @@ Resource ResourceService::setAvailability(int resourceId, int userId,
     return resource;
 }
 
-} // namespace cc
+} 
