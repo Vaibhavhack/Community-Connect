@@ -1,20 +1,3 @@
-// main.cpp
-// -----------------------------------------------------------------------------
-// Purpose : Program entry point. Command-line parsing and start-up only.
-//
-// The original main.cpp contained the whole menu. It now only wires the
-// objects together and hands control to one of two run modes.
-//
-// Usage
-//   ./build/cc-server --selftest          verify the Stage 2 backend (start here)
-//   ./build/cc-server --console           console version of the original menu
-//   ./build/cc-server                     (Stage 5 will start the HTTP server)
-//
-// Options
-//   --data <dir>   where the .txt files live (default: ./data)
-//   --help         this text
-// -----------------------------------------------------------------------------
-
 #include <exception>
 #include <iostream>
 #include <string>
@@ -52,7 +35,7 @@ void printUsage() {
         "The default mode starts the local HTTP server.\n";
 }
 
-} // namespace
+}
 
 int main(int argc, char* argv[]) {
     bool selfTest = false;
@@ -99,19 +82,13 @@ int main(int argc, char* argv[]) {
     }
 
     try {
-        // The self-test builds its own throwaway services in build/selftest-data,
-        // so it runs BEFORE anything touches the real data directory.
         if (selfTest) {
             return cc::runSelfTest() == 0 ? 0 : 1;
         }
 
-        // Creating the FileManager creates data/ if it does not exist yet, so a
-        // fresh clone works with no manual setup.
         cc::FileManager files(dataDir);
         cc::SessionManager sessions;
 
-        // Composition order matters: the request module needs the resource,
-        // user and notification modules to already exist.
         cc::UserService users(files, sessions);
         cc::ResourceService resources(files);
         cc::NotificationService notifications(files);
@@ -123,9 +100,9 @@ int main(int argc, char* argv[]) {
                 std::cout << "Demo seed skipped: existing data was found. No real data was changed.\n";
                 return 0;
             }
-            const int aman = users.registerUser("Aman Sharma", "aman", "aman.demo@communityconnect.local", "demo1234", "Dehradun", "Rajpur Road", "C++, DSA, Algorithms", "Programming, Projects", "9000000001");
-            const int riya = users.registerUser("Riya Singh", "riya", "riya.demo@communityconnect.local", "demo1234", "Dehradun", "Clement Town", "Java, DBMS, Web Development", "Web, Databases", "9000000002");
-            const int kabir = users.registerUser("Kabir Mehta", "kabir", "kabir.demo@communityconnect.local", "demo1234", "Haridwar", "Jwalapur", "Python, Machine Learning", "AI, Data Science", "9000000003");
+            const int aman = users.registerUser("Aman Sharma", "aman", "aman.demo@communityconnect.local", "demo1234", "Dehradun", "Rajpur Road", "C++, DSA, Algorithms", "Programming, Projects", "9000123456");
+            const int riya = users.registerUser("Riya Singh", "riya", "riya.demo@communityconnect.local", "demo1234", "Dehradun", "Clement Town", "Java, DBMS, Web Development", "Web, Databases", "9000123457");
+            const int kabir = users.registerUser("Kabir Mehta", "kabir", "kabir.demo@communityconnect.local", "demo1234", "Haridwar", "Jwalapur", "Python, Machine Learning", "AI, Data Science", "9000123458");
             const int r1 = resources.createResource(aman, "C++ and DSA Notes", "Exam-focused notes covering C++, STL, stacks, queues, trees and graphs.", "Notes and Study Materials");
             const int r2 = resources.createResource(riya, "DBMS Previous Year Papers", "Collection of university DBMS papers arranged by semester for practice.", "Previous Year Question Papers");
             const int r3 = resources.createResource(kabir, "Machine Learning Project Guide", "A beginner-friendly guide for planning and documenting an academic ML project.", "Academic Projects");
