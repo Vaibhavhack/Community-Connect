@@ -1,7 +1,4 @@
-// SearchService.cpp
-// -----------------------------------------------------------------------------
-// MODULE 4 - Search, matching and dashboard aggregation.
-// -----------------------------------------------------------------------------
+
 
 #include "SearchService.h"
 
@@ -47,8 +44,7 @@ bool termMatchesValue(const std::string& term, const std::string& value) {
     if (wanted.empty() || actual.empty()) return false;
     if (wanted == actual) return true;
 
-    // Also support useful cases such as query "program" matching
-    // "Programming Resources" and "c++" matching "C++ programming".
+   
     std::istringstream words(actual);
     std::string word;
     while (words >> word) {
@@ -73,7 +69,7 @@ std::vector<std::string> uniqueTerms(const std::vector<std::string>& input) {
     return result;
 }
 
-} // namespace
+} 
 
 std::vector<std::string> SearchService::queryTerms(const std::string& text) {
     std::vector<std::string> raw;
@@ -163,8 +159,7 @@ std::vector<RankedResource> SearchService::searchResources(const std::string& qu
         item.resource = resource;
 
         if (cleanQuery.empty()) {
-            // With no keyword the category/availability filters are enough.
-            // Give every result a neutral score so the final order is newest first.
+           
             item.score = 0;
         } else {
             item.score = resourceScore(resource, terms, cleanQuery, item.matchedTerms);
@@ -255,7 +250,7 @@ std::vector<UserMatch> SearchService::matchUsersForRequest(int requestId,
 
     std::vector<UserMatch> result;
     for (const UserView& user : users_.listPublicProfiles()) {
-        // The requester does not need to be suggested as their own helper.
+       
         if (user.id == request.requesterId) continue;
 
         UserMatch match = scoreUser(user, requiredSkills, {}, "");
