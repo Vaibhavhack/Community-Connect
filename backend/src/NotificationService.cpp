@@ -1,7 +1,3 @@
-// NotificationService.cpp
-// -----------------------------------------------------------------------------
-// MODULE 5 - in-app notifications.
-// -----------------------------------------------------------------------------
 
 #include "NotificationService.h"
 
@@ -31,8 +27,7 @@ int NotificationService::notify(int receiverId,
                                 const std::string& message,
                                 const std::string& type) {
     if (receiverId <= 0) {
-        // Defensive: a notification with no receiver can never be read, so it
-        // would just be dead data in the file.
+       
         throw ValidationError("A notification needs a valid receiver.");
     }
 
@@ -56,13 +51,12 @@ std::vector<Notification> NotificationService::listFor(int userId, bool onlyUnre
     std::vector<Notification> result;
 
     for (const Notification& item : notifications_) {
-        if (item.receiverId != userId) continue;   // authorisation by construction
+        if (item.receiverId != userId) continue;   
         if (onlyUnread && item.isRead) continue;
         result.push_back(item);
     }
 
-    // Newest first. Ids increase monotonically, so a descending id sort is the
-    // same as a descending timestamp sort and avoids parsing dates.
+    
     std::sort(result.begin(), result.end(),
               [](const Notification& a, const Notification& b) {
                   return a.getId() > b.getId();
@@ -94,8 +88,7 @@ void NotificationService::markRead(int userId, int notificationId) {
     }
 
     if (item.isRead) {
-        return; // already read: nothing to do, and not an error
-    }
+        return;
 
     item.isRead = true;
     persist();
@@ -115,16 +108,13 @@ std::size_t NotificationService::markAllRead(int userId) {
     return changed;
 }
 
-// ---------------------------------------------------------------------------
-// Convenience wrappers - one place for each sentence, so the UI stays consistent
-// ---------------------------------------------------------------------------
+
 
 void NotificationService::notifyResourceRequested(int ownerId, int requesterId,
                                                   const std::string& requesterName,
                                                   const std::string& resourceTitle,
                                                   int requestId) {
-    (void)requesterId; // kept in the signature so callers read clearly
-
+    (void)requesterId; 
     const std::string message = requesterName + " requested your resource \"" +
                                 resourceTitle + "\" (request #" +
                                 std::to_string(requestId) + ").";
