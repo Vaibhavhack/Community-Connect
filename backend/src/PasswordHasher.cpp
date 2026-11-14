@@ -1,9 +1,3 @@
-// PasswordHasher.cpp
-// -----------------------------------------------------------------------------
-// Apple systems : CommonCrypto (part of macOS, nothing to install)
-// Other systems : OpenSSL PKCS5_PBKDF2_HMAC (-lcrypto)
-// Both produce the identical stored format.
-// -----------------------------------------------------------------------------
 
 #include "PasswordHasher.h"
 
@@ -16,7 +10,7 @@
 #if defined(__APPLE__)
   #include <CommonCrypto/CommonCrypto.h>
   #include <CommonCrypto/CommonKeyDerivation.h>
-  #include <CommonCrypto/CommonRandom.h>   // CCRandomGenerateBytes
+  #include <CommonCrypto/CommonRandom.h>   
 #else
   #include <openssl/evp.h>
   #include <openssl/rand.h>
@@ -43,7 +37,7 @@ int base64Value(char c) {
     return -1;
 }
 
-// Split "a$b$c$d" into its four parts. Returns false if the shape is wrong.
+
 bool splitHash(const std::string& stored, std::string parts[4]) {
     std::size_t start = 0;
     for (int i = 0; i < 4; ++i) {
@@ -53,20 +47,18 @@ bool splitHash(const std::string& stored, std::string parts[4]) {
             parts[i] = stored.substr(start, end - start);
             start = end + 1;
         } else {
-            parts[i] = stored.substr(start); // last part: rest of the string
+            parts[i] = stored.substr(start); 
         }
     }
     return !parts[0].empty() && !parts[1].empty() &&
            !parts[2].empty() && !parts[3].empty();
 }
 
-} // namespace
+} 
 
 namespace {
 
-// ---------------------------------------------------------------------------
-// Secure randomness
-// ---------------------------------------------------------------------------
+
 std::vector<std::uint8_t> randomBytesImpl(std::size_t count) {
     std::vector<std::uint8_t> buffer(count, 0);
     if (count == 0) return buffer;
@@ -85,9 +77,7 @@ std::vector<std::uint8_t> randomBytesImpl(std::size_t count) {
     return buffer;
 }
 
-// ---------------------------------------------------------------------------
-// PBKDF2-HMAC-SHA256
-// ---------------------------------------------------------------------------
+
 std::vector<std::uint8_t> pbkdf2Impl(const std::string& password,
                                      const std::vector<std::uint8_t>& salt,
                                      int iterations,
@@ -121,12 +111,7 @@ std::vector<std::uint8_t> pbkdf2Impl(const std::string& password,
     return key;
 }
 
-} // namespace
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
+} 
 std::vector<std::uint8_t> PasswordHasher::randomBytes(std::size_t count) {
     return randomBytesImpl(count);
 }
