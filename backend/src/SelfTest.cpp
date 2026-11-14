@@ -1,7 +1,3 @@
-// SelfTest.cpp
-// -----------------------------------------------------------------------------
-// Verifies the backend foundation and Stages 3-4 modules. See SelfTest.h for the checklist.
-// -----------------------------------------------------------------------------
 
 #include "SelfTest.h"
 
@@ -44,7 +40,7 @@ void section(const std::string& title) {
     std::cout << "\n" << title << "\n";
 }
 
-// Expects the callable to throw AppError (or a subclass).
+
 template <typename Callable>
 void checkThrows(Callable callable, const std::string& what) {
     try {
@@ -57,7 +53,7 @@ void checkThrows(Callable callable, const std::string& what) {
     }
 }
 
-} // namespace
+} 
 
 int runSelfTest() {
     passed = 0;
@@ -67,14 +63,14 @@ int runSelfTest() {
     std::cout << " Community Connect - Stage 2 backend self-test\n";
     std::cout << "==================================================\n";
 
-    // A throwaway directory so the real data/ folder is never touched.
+    
     const std::string testDir = "build/selftest-data";
     std::error_code ec;
     std::filesystem::remove_all(testDir, ec);
 
-    // -----------------------------------------------------------------------
+    
     section("1. Escaping (fields may contain '|', '\\' and newlines)");
-    // -----------------------------------------------------------------------
+   
     {
         const std::string nasty = "Notes | with \\ a pipe\nand a newline";
         const std::string escaped = FileManager::escape(nasty);
@@ -84,9 +80,9 @@ int runSelfTest() {
               "escape() then unescape() returns the original text");
     }
 
-    // -----------------------------------------------------------------------
+   
     section("2. Password hashing (PBKDF2-HMAC-SHA256, unique salt)");
-    // -----------------------------------------------------------------------
+   
     {
         const std::string password = "student@12345";
         const std::string hash1 = PasswordHasher::createHash(password);
@@ -106,9 +102,9 @@ int runSelfTest() {
               "a corrupt stored hash returns false instead of crashing");
     }
 
-    // -----------------------------------------------------------------------
+    
     section("3. Registration and validation");
-    // -----------------------------------------------------------------------
+   
     FileManager files(testDir);
     SessionManager sessions;
     UserService users(files, sessions);
@@ -158,14 +154,14 @@ int runSelfTest() {
                     "missing city is rejected");
     }
 
-    // -----------------------------------------------------------------------
+    
     section("4. Persistence (data survives a restart)");
-    // -----------------------------------------------------------------------
+    
     {
         check(std::filesystem::exists(files.pathOf(UserService::kFileName)),
               "users.txt was created automatically");
 
-        // A brand new service on the same directory = simulating a restart.
+      
         SessionManager sessions2;
         UserService reopened(files, sessions2);
 
@@ -174,11 +170,11 @@ int runSelfTest() {
         check(reopened.getOwnProfile(aditiId).name == "Aditi Sharma",
               "name survives the reload");
 
-        // The hash came back from disk: the ORIGINAL password still verifies.
+      
         check(!reopened.login("aditi", "student@12345").empty(),
               "the stored password hash still verifies after a restart");
 
-        // A new registration must not reuse id 1 after the restart.
+       
         const int secondId = reopened.registerUser("Rahul Verma", "rahul",
                                                    "rahul@college.edu", "student@12345",
                                                    "Mumbai", "Andheri",
@@ -187,9 +183,9 @@ int runSelfTest() {
               "next user id continues after the highest stored id (no collision)");
     }
 
-    // -----------------------------------------------------------------------
+  
     section("5. Authentication and sessions");
-    // -----------------------------------------------------------------------
+  
     {
         SessionManager sessions3;
         UserService service(files, sessions3);
@@ -217,16 +213,16 @@ int runSelfTest() {
               "logging out one session does not affect another");
     }
 
-    // -----------------------------------------------------------------------
+    
     section("6. Profile editing");
-    // -----------------------------------------------------------------------
+    
     {
         SessionManager sessions4;
         UserService service(files, sessions4);
 
         const UserView edited = service.updateProfile(aditiId,
-                                                     "",            // name: unchanged
-                                                     "Pune City",   // city: changed
+                                                     "",           
+                                                     "Pune City",   
                                                      "", "", "", "", "", "");
 
         check(edited.city == "Pune City", "city is updated");
@@ -244,11 +240,11 @@ int runSelfTest() {
               "the new password works");
     }
 
-    // -----------------------------------------------------------------------
+   
     section("7. Corrupt record handling");
-    // -----------------------------------------------------------------------
+    
     {
-        // Append a broken line to users.txt; loading must skip it, not crash.
+        
         const std::string path = files.pathOf(UserService::kFileName);
         {
             std::ofstream appender(path, std::ios::app);
@@ -264,11 +260,7 @@ int runSelfTest() {
         check(service.exists(aditiId), "the valid records are intact");
     }
 
-    // =======================================================================
-    // STAGE 3 - resources, priority queue, requests, contact privacy
-    // =======================================================================
-    // A second, clean data directory so these checks do not depend on the
-    // deliberate corruption performed in section 7.
+    
     const std::string stage3Dir = "build/selftest-data-stage3";
     std::filesystem::remove_all(stage3Dir, ec);
 
@@ -279,7 +271,7 @@ int runSelfTest() {
     NotificationService notifications(files3);
     RequestService requests(files3, resources, users3, notifications);
 
-    // Owner adds a resource; requester asks for it; stranger is an outsider.
+  
     const int ownerId = users3.registerUser("Isha Patil", "isha", "isha@college.edu",
                                             "student@12345", "Pune", "Baner",
                                             "C++, DSA", "Teaching", "+91 90000 11111");
@@ -290,15 +282,15 @@ int runSelfTest() {
                                                "student@12345", "Nagpur", "Sadar",
                                                "Python", "Robotics", "");
 
-    // -----------------------------------------------------------------------
+    
     section("8. Priority queue as a data structure");
-    // -----------------------------------------------------------------------
+    
     {
         PriorityQueue<HelpRequest> queue([](const HelpRequest& a, const HelpRequest& b) {
             if (a.priority != b.priority) {
                 return static_cast<int>(a.priority) > static_cast<int>(b.priority);
             }
-            return a.getId() < b.getId();   // older (smaller id) wins a tie
+            return a.getId() < b.getId();  
         });
 
         auto makeRequest = [](int id, Priority priority) {
@@ -311,7 +303,7 @@ int runSelfTest() {
 
         checkThrows([&] { queue.top(); }, "peeking an empty queue throws");
 
-        // Inserted out of priority order on purpose.
+       
         queue.push(makeRequest(1, Priority::Low));
         queue.push(makeRequest(2, Priority::High));
         queue.push(makeRequest(3, Priority::Medium));
@@ -319,13 +311,12 @@ int runSelfTest() {
         check(queue.size() == 3, "size() counts the inserted items");
         check(queue.top().getId() == 2, "peek returns the HIGH priority request");
 
-        // Equal priority: id 5 was created before id 4 is inserted, so with ids
-        // 4 and 5 both High the older (4) must come out first.
+        
         queue.push(makeRequest(5, Priority::High));
         queue.push(makeRequest(4, Priority::High));
         check(queue.top().getId() == 2, "equal priority -> older request (smaller id) first");
 
-        // Peeking is a read: it must not remove the item.
+        
         const std::size_t sizeBeforePeek = queue.size();
         queue.top();
         check(queue.size() == sizeBeforePeek, "peek does not remove anything from the queue");
@@ -354,7 +345,7 @@ int runSelfTest() {
             makeRequest(13, Priority::High)
         };
 
-        // buildHeap must produce the same order as individual pushes.
+      
         PriorityQueue<HelpRequest> built([](const HelpRequest& a, const HelpRequest& b) {
             if (a.priority != b.priority) {
                 return static_cast<int>(a.priority) > static_cast<int>(b.priority);
@@ -367,7 +358,7 @@ int runSelfTest() {
         check(built.top().getId() == 12,
               "buildHeap restores priority order (oldest High first)");
 
-        // sortedCopy: full descending order WITHOUT destroying the queue.
+       
         const std::size_t before = built.size();
         const std::vector<HelpRequest> ordered = built.sortedCopy();
 
@@ -378,7 +369,7 @@ int runSelfTest() {
               "sortedCopy places Medium before Low");
         check(built.size() == before, "sortedCopy leaves the queue unchanged");
 
-        // Extract-everything order.
+        
         std::vector<int> extracted;
         while (!built.empty()) {
             extracted.push_back(built.pop().getId());
@@ -389,9 +380,9 @@ int runSelfTest() {
         checkThrows([&] { built.pop(); }, "popping an empty queue throws");
     }
 
-    // -----------------------------------------------------------------------
+    
     section("9. Resource management");
-    // -----------------------------------------------------------------------
+    
     int resourceId = 0;
     {
         resourceId = resources.createResource(ownerId, "C++ Primer (5th edition)",
@@ -431,12 +422,12 @@ int runSelfTest() {
               "the Available filter includes an available resource");
     }
 
-    // -----------------------------------------------------------------------
+   
     section("10. Help requests, priority queue and the state machine");
-    // -----------------------------------------------------------------------
+   
     int highRequestId = 0;
     {
-        // requesterId = 0 is what an unauthenticated caller resolves to.
+        
         checkThrows([&] { requests.createRequest(0, resourceId, "Need help",
                                                  "Please help me understand pointers.",
                                                  "C++", "", Priority::High); },
@@ -460,7 +451,7 @@ int runSelfTest() {
                                                  "", "", Priority::Low); },
                     "requesting your own resource is refused (preserved rule)");
 
-        // Three more requests at different priorities.
+       
         const int lowId = requests.createRequest(requesterId, resourceId,
                                                  "Low priority note share",
                                                  "Would like the summary notes whenever convenient.",
@@ -480,7 +471,7 @@ int runSelfTest() {
         check(requests.peekHighestPriority().getId() == highRequestId,
               "O(1) peek returns the most urgent request");
 
-        // Peeking must not alter the queue or the stored status.
+     
         check(requests.requireRequest(highRequestId).status == RequestStatus::Pending,
               "peeking does not change any status");
 
@@ -492,7 +483,7 @@ int runSelfTest() {
     }
 
     {
-        // ---- authorisation on transitions ----
+      
         checkThrows([&] { requests.acceptRequest(highRequestId, requesterId); },
                     "the requester cannot accept their own request");
         checkThrows([&] { requests.acceptRequest(highRequestId, strangerId); },
@@ -531,11 +522,11 @@ int runSelfTest() {
                     "an already completed request cannot be completed again");
     }
 
-    // -----------------------------------------------------------------------
+  
     section("11. Contact privacy gate (enforced in C++, not in the UI)");
-    // -----------------------------------------------------------------------
+    
     {
-        // Before acceptance the details must be locked.
+        
         const int lockedId = requests.createRequest(requesterId, resourceId,
                                                     "Details should stay hidden",
                                                     "This request is still pending, so contacts hide.",
@@ -546,12 +537,12 @@ int runSelfTest() {
         checkThrows([&] { requests.contactDetailsFor(lockedId, ownerId); },
                     "the owner cannot unlock contacts before accepting");
 
-        // After a REJECTION the details must stay locked.
+        
         requests.rejectRequest(lockedId, ownerId);
         checkThrows([&] { requests.contactDetailsFor(lockedId, requesterId); },
                     "a rejected request still hides contact details");
 
-        // After ACCEPTANCE both parties can see each other.
+       
         const int openId = requests.createRequest(requesterId, resourceId,
                                                   "Share the book",
                                                   "I would like to borrow the C++ primer please.",
@@ -572,16 +563,16 @@ int runSelfTest() {
         checkThrows([&] { requests.contactDetailsFor(openId, strangerId); },
                     "a third user still cannot read the contact details");
 
-        // The public profile must never carry the private fields.
+       
         check(users3.getPublicProfile(ownerId).email.empty(),
               "public profiles still hide the email");
         check(users3.getPublicProfile(ownerId).contactPhone.empty(),
               "public profiles still hide the phone");
     }
 
-    // -----------------------------------------------------------------------
+    
     section("12. Notifications");
-    // -----------------------------------------------------------------------
+    
     {
         const std::vector<Notification> ownerFeed = notifications.listFor(ownerId);
         check(!ownerFeed.empty(), "the owner received a notification for each request");
@@ -605,7 +596,7 @@ int runSelfTest() {
         const std::size_t unread = notifications.unreadCount(requesterId);
         check(unread > 0, "the requester has unread notifications");
 
-        // One user cannot touch another user's notification.
+      
         const Notification foreign = requesterFeed.front();
         checkThrows([&] { notifications.markRead(ownerId, foreign.getId()); },
                     "a user cannot mark somebody else's notification read");
@@ -619,7 +610,7 @@ int runSelfTest() {
         check(notifications.unreadCount(requesterId) == 0,
               "no unread notifications remain");
 
-        // Persistence: a fresh service reads the same feed from disk.
+        
         NotificationService reloaded(files3);
         check(reloaded.listFor(requesterId).size() == requesterFeed.size(),
               "notifications survive a restart (loaded from notifications.txt)");
@@ -627,12 +618,11 @@ int runSelfTest() {
               "the read/unread state is persisted too");
     }
 
-    // -----------------------------------------------------------------------
+    
     section("13. Referential integrity on delete");
-    // -----------------------------------------------------------------------
+    
     {
-        // A resource with live requests must not vanish, or its requests would
-        // point at a missing id (the bug in the original code).
+        
         auto liveCheck = [&requests](int id) { return requests.hasLiveRequests(id); };
 
         checkThrows([&] { resources.deleteResource(resourceId, ownerId, liveCheck); },
@@ -641,7 +631,7 @@ int runSelfTest() {
         checkThrows([&] { resources.deleteResource(resourceId, requesterId, liveCheck); },
                     "a non-owner cannot delete the resource at all");
 
-        // A second resource with no requests can be deleted by its owner.
+       
         const int spareId = resources.createResource(ownerId, "Spare graph paper",
                                                     "Unused graph paper, no requests attached.",
                                                     "Stationery");
@@ -652,10 +642,9 @@ int runSelfTest() {
 
     std::filesystem::remove_all(stage3Dir, ec);
 
-    // -----------------------------------------------------------------------
-    // -----------------------------------------------------------------------
+  
     section("14. Search, skill matching and dashboard");
-    // -----------------------------------------------------------------------
+    
     {
         SearchService search(users3, resources, requests, notifications);
 
