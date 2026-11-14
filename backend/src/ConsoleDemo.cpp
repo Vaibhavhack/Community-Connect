@@ -1,12 +1,3 @@
-// ConsoleDemo.cpp
-// -----------------------------------------------------------------------------
-// The console version of Community Connect, running on the same services the
-// HTTP API will use in Stage 5.
-//
-// Presentation only: this file reads input, calls a service, and prints the
-// result or the error message. It never touches a file or enforces a rule -
-// which is exactly what the original CommunityPlatform class got wrong.
-// -----------------------------------------------------------------------------
 
 #include "ConsoleDemo.h"
 
@@ -21,11 +12,6 @@ namespace cc {
 
 namespace {
 
-// ---------------------------------------------------------------------------
-// Input helpers
-// ---------------------------------------------------------------------------
-// Reading a number leaves a newline in the stream; reading a line afterwards
-// then returns an empty string. That class of bug is handled here, once.
 std::string readLine(const std::string& prompt) {
     std::cout << prompt;
     std::string value;
@@ -60,9 +46,6 @@ bool readPriority(const std::string& prompt, Priority& value) {
         default: return false;
     }
 }
-
-// Prints the nine educational categories and returns the chosen spelling.
-// An empty result means "cancelled".
 std::string chooseCategory() {
     const std::vector<std::string>& all = categories::all();
 
@@ -77,10 +60,6 @@ std::string chooseCategory() {
 
     return all[static_cast<std::size_t>(choice - 1)];
 }
-
-// ---------------------------------------------------------------------------
-// Printers
-// ---------------------------------------------------------------------------
 
 void printProfile(const UserView& profile, bool isOwnProfile) {
     std::cout << "\n===== " << (isOwnProfile ? "MY PROFILE" : "PROFILE") << " =====\n";
@@ -108,8 +87,7 @@ void printResourceBrief(const Resource& resource, const UserService& users) {
               << " | " << resource.category
               << " | " << toString(resource.availability);
 
-    // The owner's name, resolved through the user module (as the original
-    // showResource() did), but shown safely if the account is gone.
+   
     try {
         std::cout << " | by " << users.getPublicProfile(resource.ownerId).name;
     } catch (const AppError&) {
@@ -168,14 +146,6 @@ void printNotification(const Notification& item) {
     std::cout << (item.isRead ? "  [read]   " : "  [UNREAD] ")
               << "#" << item.getId() << " " << item.message << "\n";
 }
-
-// ---------------------------------------------------------------------------
-// Request actions
-// ---------------------------------------------------------------------------
-
-// Shows the contact details of the other party. Deliberately routed through
-// requestService.contactDetailsFor(), so the console version obeys exactly the
-// same privacy rule as the web version.
 void showContactDetails(RequestService& requests, int requestId, int userId) {
     const ContactDetails details = requests.contactDetailsFor(requestId, userId);
 
@@ -271,7 +241,7 @@ void incomingRequestsMenu(RequestService& requests, UserService& users,
         return;
     }
 
-    // listIncoming() is already ordered by priority: urgent work first.
+
     for (const HelpRequest& request : incoming) {
         printRequest(request, users, resources);
     }
@@ -314,7 +284,7 @@ void incomingRequestsMenu(RequestService& requests, UserService& users,
     }
 }
 
-// THE PRIORITY QUEUE VIEW - the compulsory DSA feature, made visible.
+
 void priorityQueueMenu(RequestService& requests, UserService& users,
                        ResourceService& resources) {
     std::cout << "\n===== PENDING REQUESTS BY PRIORITY =====\n";
@@ -323,8 +293,6 @@ void priorityQueueMenu(RequestService& requests, UserService& users,
         std::cout << "The priority queue is empty - no pending requests.\n";
         return;
     }
-
-    // sortedCopy(): a full heap sort on a copy. The real queue is untouched.
     const std::vector<HelpRequest> ordered = requests.listPendingByPriority();
 
     std::cout << "Order: High > Medium > Low, and older requests first within a level.\n\n";
@@ -482,7 +450,7 @@ void resourcesMenu(ResourceService& resources, RequestService& requests,
                     std::cout << "Availability set to " << toString(availability) << ".\n";
 
                 } else if (action == 3) {
-                    // The request module decides whether the delete is safe.
+                   
                     resources.deleteResource(manageId, userId,
                                              [&requests](int id) {
                                                  return requests.hasLiveRequests(id);
@@ -554,7 +522,7 @@ void helpRequestMenu(RequestService& requests, ResourceService& resources,
     }
 }
 
-} // namespace
+} 
 
 void searchAndDashboardMenu(SearchService& search,
                              int userId) {
@@ -637,10 +605,6 @@ void searchAndDashboardMenu(SearchService& search,
     }
 }
 
-// ---------------------------------------------------------------------------
-// Main console loop
-// ---------------------------------------------------------------------------
-
 int runConsoleDemo(FileManager& files,
                    SessionManager& sessions,
                    UserService& users,
@@ -659,7 +623,7 @@ int runConsoleDemo(FileManager& files,
     int currentUserId = 0;
 
     while (true) {
-        // The unread badge, shown on every menu draw - like a real app.
+        
         if (currentUserId != 0) {
             const std::size_t unread = notifications.unreadCount(currentUserId);
             if (unread > 0) {
@@ -774,7 +738,7 @@ int runConsoleDemo(FileManager& files,
                     }
 
                     case 7: {
-                        // Add-resource flow, then the browse/manage submenu.
+                    
                         int addFirst = 0;
                         if (!readInt("\nAdd a new resource? 1 = yes, 0 = just browse: ", addFirst)) {
                             break;
@@ -831,4 +795,4 @@ int runConsoleDemo(FileManager& files,
     return 0;
 }
 
-} // namespace cc
+} 
