@@ -1,15 +1,3 @@
-// UserService.cpp
-// -----------------------------------------------------------------------------
-// MODULE 1 - User Management.
-//
-// Compare with the original UserManagement.cpp: the same operations, but
-//   - no console input/output (the HTTP layer will call these methods)
-//   - real validation instead of only "is it empty?"
-//   - salted PBKDF2 hashes instead of plain-text passwords
-//   - O(1) duplicate and login lookups through unordered_map instead of O(n) scans
-//   - every change written to users.txt immediately (nothing is lost on exit)
-// -----------------------------------------------------------------------------
-
 #include "UserService.h"
 
 #include <algorithm>
@@ -20,11 +8,9 @@ namespace cc {
 
 namespace {
 
-// Phone numbers are optional, but if given they must look like a phone number.
-// Deliberately permissive: digits, spaces and the usual separators.
 std::string validatePhone(const std::string& value) {
     const std::string phone = trim(value);
-    if (phone.empty()) return phone; // optional field
+    if (phone.empty()) return phone;
 
     if (phone.size() > 20) {
         throw ValidationError("Contact number is too long (maximum 20 characters).");
@@ -57,20 +43,13 @@ bool hasControlCharacters(const std::string& value) {
     return false;
 }
 
-} // namespace
-
-// ---------------------------------------------------------------------------
-// Construction
-// ---------------------------------------------------------------------------
+}
 
 UserService::UserService(FileManager& files, SessionManager& sessions)
     : files_(files), sessions_(sessions) {
 
     users_ = files_.loadAll<User>(kFileName);
 
-    // Next id must be one past the largest id stored, so a restart never
-    // re-issues an id that is already on disk (the original code always
-    // restarted from 1, which would have collided the moment data was saved).
     int highestId = 0;
     for (const User& user : users_) {
         highestId = std::max(highestId, user.getId());
@@ -105,10 +84,6 @@ void UserService::persist() {
     files_.saveAll(kFileName, users_);
 }
 
-// ---------------------------------------------------------------------------
-// Validation
-// ---------------------------------------------------------------------------
-
 std::string UserService::validateName(const std::string& value) {
     const std::string name = trim(value);
 
@@ -141,8 +116,6 @@ std::string UserService::validateUsername(const std::string& value) {
         throw ValidationError("Username must be at most 30 characters long.");
     }
 
-    // Letters, digits, dot, underscore and hyphen only. This keeps usernames
-    // safe to show in the UI and impossible to use for path tricks.
     for (char c : username) {
         const unsigned char u = static_cast<unsigned char>(c);
         const bool allowed = std::isalnum(u) || c == '.' || c == '_' || c == '-';
@@ -228,17 +201,12 @@ std::string UserService::validateCity(const std::string& value) {
 }
 
 std::string UserService::normaliseList(const std::string& value) {
-    // "DSA,  c++ ,DSA" -> "DSA, c++" : trimmed, de-duplicated, tidy separators.
     return joinList(splitList(value));
 }
 
 std::string UserService::hashForLookup(const std::string& value) {
     return toLowerCopy(trim(value));
 }
-
-// ---------------------------------------------------------------------------
-// Lookups
-// ---------------------------------------------------------------------------
 
 User& UserService::requireUser(int userId) {
     auto it = idIndex_.find(userId);
@@ -273,10 +241,6 @@ int UserService::findIdByUsernameOrEmail(const std::string& identifier) const {
     return 0;
 }
 
-// ---------------------------------------------------------------------------
-// Registration
-// ---------------------------------------------------------------------------
-
 int UserService::registerUser(const std::string& name,
                               const std::string& username,
                               const std::string& email,
@@ -301,11 +265,8 @@ int UserService::registerUser(const std::string& name,
         throw ValidationError("Locality must be at most 60 characters long.");
     }
 
-    // Validate the password BEFORE hashing, so weak input is rejected cheaply
-    // (hashing is intentionally slow).
     validatePassword(password);
 
-    // Duplicate prevention. Both checks are O(1) average.
     if (emailIndex_.find(hashForLookup(user.email)) != emailIndex_.end()) {
         throw ConflictError("An account with this email already exists.");
     }
@@ -315,7 +276,7 @@ int UserService::registerUser(const std::string& name,
 
     user.setId(nextUserId_++);
     user.setCreatedAt(nowIso8601());
-    user.passwordHash = PasswordHasher::createHash(password); // salted, per user
+    user.passwordHash = PasswordHasher::createHash(password);
 
     users_.push_back(user);
 
@@ -323,20 +284,14 @@ int UserService::registerUser(const std::string& name,
     emailIndex_[hashForLookup(user.email)] = user.getId();
     usernameIndex_[hashForLookup(user.username)] = user.getId();
 
-    persist(); // written to users.txt now, not at exit
+    persist();
 
     return user.getId();
 }
 
-// ---------------------------------------------------------------------------
-// Authentication
-// ---------------------------------------------------------------------------
-
 std::string UserService::login(const std::string& identifier, const std::string& password) {
     const int userId = findIdByUsernameOrEmail(identifier);
 
-    // One identical error for "no such account" and "wrong password", so the
-    // API cannot be used to discover which emails are registered.
     const std::string failure = "Invalid username/email or password.";
 
     if (userId == 0) {
@@ -356,10 +311,6 @@ void UserService::logout(const std::string& token) {
     sessions_.destroySession(token);
 }
 
-// ---------------------------------------------------------------------------
-// Profiles
-// ---------------------------------------------------------------------------
-
 UserView UserService::toView(const User& user, bool includePrivate) {
     UserView view;
     view.id        = user.getId();
@@ -371,7 +322,6 @@ UserView UserService::toView(const User& user, bool includePrivate) {
     view.interests = user.interests;
     view.createdAt = user.getCreatedAt();
 
-    // Privacy switch: the password hash is NEVER copied into a view at all.
     if (includePrivate) {
         view.email        = user.email;
         view.contactPhone = user.contactPhone;
@@ -420,10 +370,6 @@ std::string UserService::privateContactOf(int userId) const {
     return contact;
 }
 
-// ---------------------------------------------------------------------------
-// Profile editing
-// ---------------------------------------------------------------------------
-
 UserView UserService::updateProfile(int userId,
                                     const std::string& name,
                                     const std::string& city,
@@ -436,10 +382,6 @@ UserView UserService::updateProfile(int userId,
 
     User& user = requireUser(userId);
 
-    // Two-phase update. Phase 1 validates EVERY supplied field into locals and
-    // does not touch the record. Phase 2 assigns. Without this, a request that
-    // changes name and city but has an invalid city would leave the name
-    // changed in memory while the save failed - a half-applied edit.
     std::string newName      = user.name;
     std::string newCity      = user.city;
     std::string newLocality  = user.locality;
@@ -462,8 +404,6 @@ UserView UserService::updateProfile(int userId,
     if (!trim(contactPhone).empty()) newPhone = validatePhone(contactPhone);
 
     if (!newPassword.empty()) {
-        // Changing the password requires proving knowledge of the old one, so
-        // a hijacked tab cannot silently lock the real owner out.
         if (currentPassword.empty() ||
             !PasswordHasher::verify(currentPassword, user.passwordHash)) {
             throw AuthError("Current password is incorrect.");
@@ -473,7 +413,6 @@ UserView UserService::updateProfile(int userId,
         newHash = PasswordHasher::createHash(newPassword);
     }
 
-    // Phase 2: nothing below can throw, so the record is never left partial.
     user.name         = newName;
     user.city         = newCity;
     user.locality     = newLocality;
@@ -482,13 +421,9 @@ UserView UserService::updateProfile(int userId,
     user.contactPhone = newPhone;
     user.passwordHash = newHash;
 
-    // Note: the caller keeps its current session because it just proved the old
-    // password. Other devices are not tracked in this local academic build
-    // (see "Known limitations" in the final report).
-
     persist();
 
     return toView(user, true);
 }
 
-} // namespace cc
+} 
