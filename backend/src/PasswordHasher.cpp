@@ -192,9 +192,7 @@ std::string PasswordHasher::randomHex(std::size_t bytes) {
     return out;
 }
 
-// ---------------------------------------------------------------------------
-// Base64 (needed to store raw salt/key bytes inside a one-line text record)
-// ---------------------------------------------------------------------------
+
 
 std::string PasswordHasher::base64Encode(const std::vector<std::uint8_t>& data) {
     std::string out;
@@ -259,4 +257,4 @@ std::vector<std::uint8_t> PasswordHasher::base64Decode(const std::string& text) 
     return out;
 }
 
-} // namespace cc
+} 
