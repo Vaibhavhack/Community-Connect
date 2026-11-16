@@ -425,5 +425,4 @@ UserView UserService::updateProfile(int userId,
 
     return toView(user, true);
 }
-
 } 
