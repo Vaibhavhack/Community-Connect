@@ -62,20 +62,20 @@ private:
 public:
     CommunityPlatform();
 
-    // User Management
+
     void registerUser();
     void login();
     void viewProfile();
     void logout();
 
-    // Resource Management
+ 
     void addResource();
     void listResources();
 
-    // Search and Matching
+    
     void searchResources();
 
-    // Help Requests
+   
     void submitRequest();
     void viewMyRequests();
     void manageRequests();
